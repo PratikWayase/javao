@@ -1,0 +1,71 @@
+/-backend
+|
+|-- /order-service
+|    |-- /src
+|    |    |-- /controllers
+|    |    |-- /services
+|    |    |-- /models
+|    |    |-- /routes
+|    |    |-- /middlewares
+|    |    |-- /events
+|    |    |    |-- /publishers
+|    |    |    |-- /listeners
+|    |    |-- /utils
+|    |-- app.js
+|    |-- package.json
+|
+|-- /inventory-service
+|    |-- /src
+|    |    |-- /controllers
+|    |    |-- /services
+|    |    |-- /models
+|    |    |-- /events
+|    |    |    |-- /publishers
+|    |    |    |-- /listeners
+|    |-- app.js
+|    |-- package.json
+|
+|-- /payment-service
+|    |-- /src
+|    |    |-- /controllers
+|    |    |-- /services
+|    |    |-- /events
+|    |-- app.js
+|    |-- package.json
+|
+|-- /notification-service
+|    |-- /src
+|    |    |-- /services
+|    |    |-- /events
+|    |-- app.js
+|    |-- package.json
+|
+|-- /wishlist-service
+|    |-- /src
+|    |    |-- /controllers
+|    |    |-- /models
+|    |    |-- /services
+|    |    |-- /routes
+|    |-- app.js
+|    |-- package.json
+|
+|-- /user-service
+|    |-- /src
+|    |    |-- /controllers
+|    |    |-- /models
+|    |    |-- /routes
+|    |    |-- /services
+|    |    |-- /middlewares (auth, JWT check)
+|    |    |-- /utils (hash password etc)
+|    |-- app.js
+|    |-- package.json
+|
+|-- /common-lib (shared utilities like auth middleware, custom errors)
+|    |-- /src
+|    |    |-- /errors
+|    |    |-- /middlewares
+|    |    |-- /events
+|    |-- package.json
+|
+|-- docker-compose.yml (for running all services together)
+|-- README.md
