@@ -11,6 +11,7 @@
 |    |    |    |-- /publishers
 |    |    |    |-- /listeners
 |    |    |-- /utils
+          |-- /cache  ← Caching logic here
 |    |-- app.js
 |    |-- package.json
 |
@@ -22,6 +23,7 @@
 |    |    |-- /events
 |    |    |    |-- /publishers
 |    |    |    |-- /listeners
+          |-- /cache  ← Caching logic here
 |    |-- app.js
 |    |-- package.json
 |
