@@ -1,0 +1,36 @@
+const express = require('express');
+const path = require('path');
+const app = express();
+
+// Mock authentication middleware
+function isAuthenticated(req, res, next) {
+  // Mock: Assume user is authenticated and has a "user" object
+  req.user = { id: 123, name: 'John Doe', completedCourses: [1, 2, 3] };
+  next();
+}
+
+// Endpoint to download certificate
+app.get('/download-certificate/:courseId', isAuthenticated, (req, res) => {
+  const { courseId } = req.params;
+  const user = req.user;
+
+  // Check if user completed this course
+  if (!user.completedCourses.includes(parseInt(courseId))) {
+    return res.status(403).json({ error: 'You are not authorized to download this certificate.' });
+  }
+
+  // Sanitize and construct file path
+  const filename = `certificate-course-${courseId}.pdf`;
+  const fileLocation = path.join(__dirname, 'certificates', filename);
+
+  // Download
+  res.download(fileLocation, filename, (err) => {
+    if (err) {
+      console.error('Error downloading certificate:', err);
+      res.status(500).send('Error downloading certificate.');
+    }
+  });
+});
+
+// Server start
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
