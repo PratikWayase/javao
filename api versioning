@@ -1,0 +1,147 @@
+//routes/v1Bookings.js//
+
+const express = require('express');
+const router = express.Router();
+const Joi = require('joi');
+
+// Mock Database (In-memory)
+let bookings = [
+  { id: "b1", user: "John Doe", destination: "Paris", date: "2025-05-10", passengers: 2 }
+];
+
+// Validation Schema for v1
+const validateBooking = (data) => {
+  const schema = Joi.object({
+    user: Joi.string().required(),
+    destination: Joi.string().required(),
+    date: Joi.string().required(),
+    passengers: Joi.number().integer().min(1).required()
+  });
+  return schema.validate(data);
+};
+
+// Create a booking (v1)
+router.post('/', (req, res) => {
+  const { error } = validateBooking(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
+
+  const { user, destination, date, passengers } = req.body;
+  const newBooking = { id: `b${bookings.length + 1}`, user, destination, date, passengers };
+  bookings.push(newBooking);
+  res.status(201).json(newBooking);
+});
+
+// Get all bookings (v1)
+router.get('/', (req, res) => {
+  res.status(200).json(bookings);
+});
+
+// Get booking by ID (v1)
+router.get('/:id', (req, res) => {
+  const booking = bookings.find(b => b.id === req.params.id);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  res.status(200).json(booking);
+});
+
+// Update booking (v1)
+router.put('/:id', (req, res) => {
+  const booking = bookings.find(b => b.id === req.params.id);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+  const { user, destination, date, passengers } = req.body;
+  booking.user = user || booking.user;
+  booking.destination = destination || booking.destination;
+  booking.date = date || booking.date;
+  booking.passengers = passengers || booking.passengers;
+
+  res.status(200).json(booking);
+});
+
+// Delete booking (v1)
+router.delete('/:id', (req, res) => {
+  const index = bookings.findIndex(b => b.id === req.params.id);
+  if (index === -1) return res.status(404).json({ message: 'Booking not found' });
+
+  bookings.splice(index, 1);
+  res.status(204).send(); // No content
+});
+
+module.exports = router;
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+// routes/v2Bookings.js //
+
+const express = require('express');
+const router = express.Router();
+const Joi = require('joi');
+
+// Mock Database (In-memory)
+let bookings = [
+  { id: "b1", user: "John Doe", destination: "Paris", date: "2025-05-10", passengers: 2, status: 'Pending', price: 200 }
+];
+
+// Validation Schema for v2 (with additional fields)
+const validateBookingV2 = (data) => {
+  const schema = Joi.object({
+    user: Joi.string().required(),
+    destination: Joi.string().required(),
+    date: Joi.string().required(),
+    passengers: Joi.number().integer().min(1).required()
+  });
+  return schema.validate(data);
+};
+
+// Create a booking (v2)
+router.post('/', (req, res) => {
+  const { error } = validateBookingV2(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
+
+  const { user, destination, date, passengers } = req.body;
+  const price = passengers * 100; // Mock price calculation
+  const newBooking = {
+    id: `b${bookings.length + 1}`,
+    user,
+    destination,
+    date,
+    passengers,
+    status: 'Pending',
+    price
+  };
+  bookings.push(newBooking);
+  res.status(201).json(newBooking);
+});
+
+// Get all bookings (v2)
+router.get('/', (req, res) => {
+  res.status(200).json(bookings);
+});
+
+// Get booking by ID (v2)
+router.get('/:id', (req, res) => {
+  const booking = bookings.find(b => b.id === req.params.id);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  res.status(200).json(booking);
+});
+
+// Update booking status (v2)
+router.patch('/:id', (req, res) => {
+  const booking = bookings.find(b => b.id === req.params.id);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+  const { status } = req.body;
+  if (status) booking.status = status;
+
+  res.status(200).json(booking);
+});
+
+// Delete booking (v2)
+router.delete('/:id', (req, res) => {
+  const index = bookings.findIndex(b => b.id === req.params.id);
+  if (index === -1) return res.status(404).json({ message: 'Booking not found' });
+
+  bookings.splice(index, 1);
+  res.status(204).send(); // No content
+});
+
+module.exports = router;
