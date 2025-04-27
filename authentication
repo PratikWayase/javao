@@ -1,0 +1,274 @@
+// Use Case | HTTP Method
+// Searching for products/bookings | GET
+// Buying a product (placing order/booking ride) | POST
+// Updating order/booking (changing address, payment, etc.) | PUT or PATCH
+// JWTs are stateless: the server doesn’t store the tokens, it just validates them every time using the secret.
+
+////////////////////////////////////////////////////////////////////////////////
+
+// 2 factor aunthenitaction 
+
+// Login: The user enters their username and password.
+
+// Generate OTP (One-Time Password): Upon successful login, an OTP is generated and sent to the user's device (e.g., via email or SMS).
+
+// Enter OTP: The user must enter the OTP to complete the login process and access the service.
+
+// Session Creation: If the OTP is verified successfully, create a session (JWT token) and allow access to the service.
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const mongoose = require('mongoose');
+const redis = require('redis');
+const logger = require('pino')(); // Use pino for structured logging
+
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+app.use(express.json());
+
+// Rate limiter for login attempts and OTP requests
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per window
+  message: 'Too many login attempts from this IP, please try again later',
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 3, // Limit OTP requests to 3 per minute
+  message: 'Too many OTP requests, please try again later',
+});
+
+// Setup for MongoDB and Redis (for persistent storage of OTPs)
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => logger.info('Connected to MongoDB'))
+  .catch((err) => logger.error('MongoDB connection failed:', err));
+
+const otpStore = redis.createClient();
+otpStore.connect();
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'user' },
+  emailVerified: { type: Boolean, default: false }, // For email verification
+  playlist: { type: [String], default: [] }, // Playlist for saved content
+  comments: [{ contentId: String, comment: String, timestamp: Date }] // User comments on content
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Content Schema (for storing media content)
+const contentSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  category: { type: String, required: true },
+  isPremium: { type: Boolean, default: false }, // Premium content flag
+});
+
+const Content = mongoose.model('Content', contentSchema);
+
+// Create a simple in-memory transporter to simulate email sending
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// Generate OTP function
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000);
+
+// Send OTP via email
+const sendOtp = (email, otp) => {
+  const mailOptions = {
+    from: process.env.SMTP_USER,
+    to: email,
+    subject: 'Your Streaming Service 2FA Code',
+    text: `Your 2FA code is: ${otp}`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      logger.error('Error sending OTP:', error);
+    } else {
+      logger.info('OTP sent:', info.response);
+    }
+  });
+};
+
+// Middleware for JWT Authentication
+const authenticateJWT = (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Token is not valid' });
+    req.user = user;
+    next();
+  });
+};
+
+// Middleware to check if the user has 'admin' or 'user' role for specific actions
+const authorizeRole = (roles) => {
+  return (req, res, next) => {
+    const { role } = req.user;
+    if (!roles.includes(role)) {
+      return res.status(403).json({ message: 'Forbidden: You do not have the required permissions' });
+    }
+    next();
+  };
+};
+
+// User login with rate limiting
+app.post('/login', loginLimiter, async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user || !await bcrypt.compare(password, user.password)) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+
+  // Generate OTP and send it to the user's email
+  const otp = generateOtp();
+  const otpKey = `otp:${email}`;
+  await otpStore.set(otpKey, otp);
+  await otpStore.expire(otpKey, 300); // OTP expires in 5 minutes
+  sendOtp(email, otp);
+
+  res.status(200).json({ message: 'OTP sent to your email' });
+});
+
+// Verify OTP
+app.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  const storedOtp = await otpStore.get(`otp:${email}`);
+  if (!storedOtp || storedOtp !== otp) {
+    return res.status(400).json({ message: 'Invalid or expired OTP' });
+  }
+
+  // OTP verified, generate JWT access token
+  const accessToken = jwt.sign({ userId: email, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  res.status(200).json({ accessToken, message: 'Login successful' });
+
+  // Remove OTP after use
+  await otpStore.del(`otp:${email}`);
+});
+
+// Protect streaming resource (requires JWT auth)
+app.get('/streaming-content', authenticateJWT, async (req, res) => {
+  const contentId = req.query.id;
+  const content = await Content.findById(contentId);
+
+  if (!content) return res.status(404).json({ message: 'Content not found' });
+
+  // Authorization based on content type (premium or not)
+  if (content.isPremium && req.user.role !== 'premium') {
+    return res.status(403).json({ message: 'You need a premium account to access this content' });
+  }
+
+  res.status(200).json({ message: 'Here is the streaming content!' });
+});
+
+// Save content to playlist
+app.post('/save-to-playlist', authenticateJWT, async (req, res) => {
+  const { contentId } = req.body;
+
+  const user = await User.findById(req.user.userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  user.playlist.push(contentId);
+  await user.save();
+
+  res.status(200).json({ message: 'Content saved to playlist' });
+});
+
+// Comment on content (with validation against vulgar comments)
+app.post('/comment', authenticateJWT, async (req, res) => {
+  const { contentId, comment } = req.body;
+
+  // Basic profanity filter (You can integrate a more advanced filter here)
+  const vulgarWords = ['badword1', 'badword2']; // Replace with real vulgar words
+  const isVulgar = vulgarWords.some(word => comment.toLowerCase().includes(word));
+
+  if (isVulgar) {
+    return res.status(400).json({ message: 'Inappropriate comment detected' });
+  }
+
+  const user = await User.findById(req.user.userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  user.comments.push({ contentId, comment, timestamp: new Date() });
+  await user.save();
+
+  res.status(200).json({ message: 'Comment added successfully' });
+});
+
+// Simulating user registration with email verification
+app.post('/register', async (req, res) => {
+  const { email, password, role = 'user' } = req.body;
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ message: 'User already exists' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = new User({ email, password: hashedPassword, role });
+  await newUser.save();
+
+  // Send email verification link (simulating)
+  const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  const verificationLink = `${process.env.BASE_URL}/verify-email?token=${verificationToken}`;
+
+  // Send email verification
+  const mailOptions = {
+    from: process.env.SMTP_USER,
+    to: email,
+    subject: 'Verify your email',
+    text: `Please verify your email by clicking the link: ${verificationLink}`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return logger.error('Error sending verification email:', error);
+    }
+    logger.info('Verification email sent:', info.response);
+  });
+
+  res.status(201).json({ message: 'User registered successfully. Please verify your email.' });
+});
+
+// Verify email (simulated)
+app.get('/verify-email', async (req, res) => {
+  const { token } = req.query;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.emailVerified = true;
+    await user.save();
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid or expired verification token' });
+  }
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
+});
