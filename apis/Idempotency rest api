@@ -1,0 +1,65 @@
+Idempotent REST API means that if the same request is made a number of times then it will have the same impact as making the request just once. 
+
+const express = require('express');
+const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
+
+const app = express();
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect('mongodb://localhost:27017/rideapp', { useNewUrlParser: true, useUnifiedTopology: true });
+
+// Ride schema
+const rideSchema = new mongoose.Schema({
+  userId: String,
+  pickupLocation: String,
+  dropLocation: String,
+  idempotencyKey: { type: String, unique: true }, // 🔥 Important
+  status: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Ride = mongoose.model('Ride', rideSchema);
+
+app.post('/book-ride', async (req, res) => {
+  const idempotencyKey = req.headers['idempotency-key'];
+
+  if (!idempotencyKey) {
+    return res.status(400).json({ error: 'Idempotency-Key header missing' });
+  }
+
+  try {
+    // Check if ride with this idempotency key already exists
+    let existingRide = await Ride.findOne({ idempotencyKey });
+
+    if (existingRide) {
+      console.log('Duplicate booking request detected!');
+      return res.status(200).json(existingRide);
+    }
+
+    // Create new ride
+    const { userId, pickupLocation, dropLocation } = req.body;
+    const newRide = await Ride.create({
+      userId,
+      pickupLocation,
+      dropLocation,
+      idempotencyKey,
+      status: 'Booked'
+    });
+
+    res.status(201).json(newRide);
+
+  } catch (error) {
+    console.error('Error booking ride:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Start server
+app.listen(3000, () => {
+  console.log('Uber Ride App Server running on port 3000');
+});
+
+
+
