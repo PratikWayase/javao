@@ -1,0 +1,43 @@
+// blogController.js
+
+
+const User = require('../models/userModel');
+const Blog = require('../models/blogModel');
+const logger = require('pino')();
+
+// Save a blog post to user's account
+exports.saveBlog = async (req, res) => {
+  const { blogId } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const user = await User.findById(userId);
+    const blog = await Blog.findById(blogId);
+
+    if (!blog) return res.status(404).json({ message: 'Blog not found' });
+
+    if (!user.savedBlogs.includes(blogId)) {
+      user.savedBlogs.push(blogId);
+      await user.save();
+      res.status(200).json({ message: 'Blog saved successfully' });
+    } else {
+      res.status(400).json({ message: 'Blog already saved' });
+    }
+  } catch (error) {
+    logger.error('Error saving blog:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+// router 
+
+const express = require('express');
+const router = express.Router();
+const { saveBlog } = require('../controllers/blogController');
+const { authenticateJWT } = require('../middleware/authMiddleware'); // Assuming you have JWT middleware
+
+// Route to save a blog to the user's account
+router.post('/save', authenticateJWT, saveBlog);
+
+module.exports = router;
