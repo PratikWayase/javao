@@ -1,0 +1,53 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const app = express();
+
+// File type check
+const allowedExtensions = ['.pdf', '.ppt', '.pptx', '.mp4'];
+const maxFileSize = 100 * 1024 * 1024; // 100MB
+
+// Storage config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/materials/');
+  },
+  filename: function (req, file, cb) {
+    const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+    cb(null, safeName);
+  }
+});
+
+// Multer upload config
+const upload = multer({ 
+  storage,
+  limits: { fileSize: maxFileSize },
+  fileFilter: function (req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      return cb(new Error('Only PDF, PPT, and MP4 files are allowed.'));
+    }
+    cb(null, true);
+  }
+});
+
+// Upload endpoint
+app.post('/upload-material', upload.single('material'), (req, res) => {
+  res.json({
+    message: 'Material uploaded successfully!',
+    file: req.file
+  });
+});
+
+// Error handling middleware (for multer errors)
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.message });
+  } else if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+});
+
+// Server start
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
