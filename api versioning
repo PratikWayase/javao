@@ -4,12 +4,14 @@ const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
 
-// Mock Database (In-memory)
+// Mock Database (In-memory) 
+
 let bookings = [
   { id: "b1", user: "John Doe", destination: "Paris", date: "2025-05-10", passengers: 2 }
 ];
 
 // Validation Schema for v1
+
 const validateBooking = (data) => {
   const schema = Joi.object({
     user: Joi.string().required(),
@@ -21,6 +23,7 @@ const validateBooking = (data) => {
 };
 
 // Create a booking (v1)
+
 router.post('/', (req, res) => {
   const { error } = validateBooking(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
