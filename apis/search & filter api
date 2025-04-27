@@ -1,0 +1,350 @@
+const mongoose = require('mongoose');
+const slugify = require('slugify');
+const jobSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    text: true
+  },
+  company: {
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    website: {
+      type: String,
+      trim: true
+    },
+    companySize: {
+      type: String,
+      trim: true,
+      enum: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
+    },
+    companyType: {
+      type: String,
+      trim: true,
+      enum: ['Public', 'Private', 'Government', 'Non-Profit']
+    },
+    companyLogo: {
+        type: String,
+      }
+  },
+  jobType: {
+    type: String,
+    required: true,
+    trim: true,
+    enum: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship', 'Freelance']
+  },
+  jobCategory: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  jobFunction: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  industry: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  experience: {
+    minYears: {
+      type: Number,
+      trim: true,
+      default: 0
+    },
+    maxYears: {
+      type: Number,
+      trim: true,
+      default: Infinity
+    }
+  },
+  salary: {
+    currency: {
+      type: String,
+      trim: true,
+      default: 'USD'
+    },
+    min: {
+      type: Number,
+      trim: true,
+      default: 0
+    },
+    max: {
+      type: Number,
+      trim: true,
+      default: Infinity
+    }
+  },
+  location: {
+    country: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    state: {
+      type: String,
+      trim: true
+    },
+    city: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    zipCode: {
+      type: String,
+      trim: true
+    }
+  },
+  workingHours: {
+    type: String,
+    trim: true,
+    enum: ['Full-time', 'Part-time', 'Flexible']
+  },
+  remoteOption: {
+    type: String,
+    trim: true,
+    enum: ['Remote', 'On-site', 'Hybrid']
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  responsibilities: [{
+    type: String,
+    trim: true
+  }],
+  qualifications: [{
+    type: String,
+    trim: true
+  }],
+  benefits: [{
+    type: String,
+    trim: true
+  }],
+  skills: [{
+    type: String,
+    trim: true
+  }],
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive', 'Closed'],
+    default: 'Active'
+  },
+  applyMethod: {
+    type: String,
+    required: true,
+    trim: true,
+    enum: ['quickApply', 'url']
+  },
+  applyURL: {
+    type: String,
+    trim: true
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
+    },
+  applicationDeadline: {
+    type: Date
+  },
+  postingDate: {
+    type: Date,
+    default: Date.now
+  },
+  slug: {
+    type: String,
+    unique: true,
+    slug: 'title'
+  },
+  employerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employer',
+  }
+}, {
+  timestamps: true
+});
+
+
+// Middleware to generate the slug before saving the job document
+jobSchema.pre('save', function (next) {
+    this.slug = slugify(this.title, {
+      lower: true,
+      strict: true,
+      trim: true
+    });
+  
+    const extraInfo = `${this.location.city.toLowerCase().replace(/\s+/g, '-')}`;
+    this.slug = `${this.slug}-${extraInfo}`;
+    next();
+  });
+
+jobSchema.index({
+  title: 'text',
+  company: 'text',
+  jobCategory: 'text',
+  jobFunction: 'text',
+  industry: 'text',
+  location: 'text',
+  skills: 'text'
+});
+
+const Job = mongoose.model('Job', jobSchema);
+
+// Search Jobs
+const searchJobs = async (query, filters) => {
+  const {
+    location,
+    jobCategory,
+    jobFunction,
+    industry,
+    jobType,
+    remoteOption,
+    minSalary,
+    maxSalary,
+    minExp,
+    maxExp,
+    skills,
+    ...rest
+  } = filters;
+
+  const searchQuery = {
+    $text: { $search: query },
+    ...rest
+  };
+
+  if (location) {
+    searchQuery['location.city'] = { $regex: location, $options: 'i' };
+  }
+
+  if (jobCategory) {
+    searchQuery.jobCategory = jobCategory;
+  }
+
+  if (jobFunction) {
+    searchQuery.jobFunction = jobFunction;
+  }
+
+  if (industry) {
+    searchQuery.industry = industry;
+  }
+
+  if (jobType) {
+    searchQuery.jobType = jobType;
+  }
+
+  if (remoteOption) {
+    searchQuery.remoteOption = remoteOption;
+  }
+
+  if (minSalary && maxSalary) {
+    searchQuery['salary.min'] = { $gte: minSalary };
+    searchQuery['salary.max'] = { $lte: maxSalary };
+  } else if (minSalary) {
+    searchQuery['salary.min'] = { $gte: minSalary };
+  } else if (maxSalary) {
+    searchQuery['salary.max'] = { $lte: maxSalary };
+  }
+
+  if (minExp && maxExp) {
+    searchQuery['experience.minYears'] = { $gte: minExp };
+    searchQuery['experience.maxYears'] = { $lte: maxExp };
+  } else if (minExp) {
+    searchQuery['experience.minYears'] = { $gte: minExp };
+  } else if (maxExp) {
+    searchQuery['experience.maxYears'] = { $lte: maxExp };
+  }
+  if (skills.length > 0) {
+    searchQuery.skills = { $in: skills };
+  }
+  
+  const jobs = await Job.find(searchQuery);
+  return jobs;
+};
+
+exports.Job = Job;
+exports.searchJobs = searchJobs;
+
+
+/////////////////////////////////////
+
+search endpoints
+
+
+router.get('/search', async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const filters = {
+      location: req.query.location,
+      jobCategory: req.query.jobCategory,
+      jobFunction: req.query.jobFunction,
+      industry: req.query.industry,
+      jobType: req.query.jobType,
+      remoteOption: req.query.remoteOption,
+      minSalary: req.query.minSalary,
+      maxSalary: req.query.maxSalary,
+      minExp: req.query.minExperience,
+      maxExp: req.query.maxExperience,
+      skills: req.query.skills ? req.query.skills.split(',') : []
+    };
+
+    const searchCriteria = {};
+
+    // Text search
+    if (query) {
+      searchCriteria.$text = { $search: query };
+    }
+
+    // Apply filters
+    if (filters.location) searchCriteria.location = { $regex: filters.location, $options: 'i' };
+    if (filters.jobCategory) searchCriteria.jobCategory = filters.jobCategory;
+    if (filters.jobFunction) searchCriteria.jobFunction = filters.jobFunction;
+    if (filters.industry) searchCriteria.industry = filters.industry;
+    if (filters.jobType) searchCriteria.jobType = filters.jobType;
+    if (filters.remoteOption) searchCriteria.remoteOption = filters.remoteOption;
+    
+    if (filters.minSalary || filters.maxSalary) {
+      searchCriteria.salary = {};
+      if (filters.minSalary) searchCriteria.salary.$gte = parseInt(filters.minSalary);
+      if (filters.maxSalary) searchCriteria.salary.$lte = parseInt(filters.maxSalary);
+    }
+    
+    if (filters.minExp || filters.maxExp) {
+      searchCriteria.experienceRequired = {};
+      if (filters.minExp) searchCriteria.experienceRequired.$gte = parseInt(filters.minExp);
+      if (filters.maxExp) searchCriteria.experienceRequired.$lte = parseInt(filters.maxExp);
+    }
+    
+    if (filters.skills.length > 0) {
+      searchCriteria.skills = { $all: filters.skills };
+    }
+
+    // Execute the search
+    const jobs = await Job.find(searchCriteria)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const totalJobs = await Job.countDocuments(searchCriteria);
+
+    res.json({
+      jobs,
+      currentPage: page,
+      totalPages: Math.ceil(totalJobs / limit),
+      totalJobs
+    });
+
+  } catch (error) {
+    console.error('Error in search endpoint:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
