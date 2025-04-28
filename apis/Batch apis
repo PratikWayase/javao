@@ -1,0 +1,65 @@
+// used when Sellers often upload products in bulk.
+// eg : when you are working with multiple items at once, like bulk clothes listing.
+
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect('mongodb://localhost:27017/batch_products', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
+
+// Product Schema
+const productSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    size: String,
+    color: String
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+// Function to save a single product
+async function saveProduct(productData) {
+    const product = new Product(productData);
+    return await product.save();
+}
+
+// Batch Upload API
+app.post('/api/v1/products/batch', async (req, res) => {
+    const products = req.body.products;
+
+    if (!Array.isArray(products)) {
+        return res.status(400).json({ error: 'Products should be an array' });
+    }
+
+    const results = await Promise.all(products.map(async (product, index) => {
+        try {
+            const savedProduct = await saveProduct(product);
+            return {
+                index,
+                status: 'success',
+                productId: savedProduct._id
+            };
+        } catch (err) {
+            return {
+                index,
+                status: 'error',
+                error: err.message
+            };
+        }
+    }));
+
+    res.status(200).json({ results });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
