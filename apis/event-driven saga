@@ -1,0 +1,121 @@
+// Services communicate by publishing events and subscribing to events via Kafka (or RabbitMQ).
+// No direct service-to-service calls.
+// Services are decoupled.
+
+// Guest → Booking Service → Kafka (booking-requested) →
+  //  → Payment Service → Kafka (payment-succeeded / payment-failed) →
+    //    → Confirmation Service (if success)
+      //  → Compensation Service (if failed)
+
+
+// booking
+
+const kafka = require('./kafka');
+const producer = kafka.producer();
+
+async function requestBooking(bookingData) {
+    await producer.connect();
+    console.log('Booking Requested:', bookingData);
+
+    await producer.send({
+        topic: 'booking-requested',
+        messages: [{ value: JSON.stringify(bookingData) }]
+    });
+
+    console.log('Event: BookingRequested emitted 🚀');
+}
+
+requestBooking({ bookingId: 'bk123', userId: 'user789', amount: 500 });
+
+
+// payment 
+
+const kafka = require('./kafka');
+const consumer = kafka.consumer({ groupId: 'payment-service' });
+const producer = kafka.producer();
+
+async function run() {
+    await consumer.connect();
+    await producer.connect();
+    await consumer.subscribe({ topic: 'booking-requested', fromBeginning: true });
+
+    await consumer.run({
+        eachMessage: async ({ message }) => {
+            const booking = JSON.parse(message.value.toString());
+            console.log('Received BookingRequested:', booking);
+
+            try {
+                console.log('Charging payment...');
+
+                if (booking.amount > 1000) { // Simulate payment fail
+                    throw new Error('Amount exceeds limit');
+                }
+
+                await producer.send({
+                    topic: 'payment-succeeded',
+                    messages: [{ value: JSON.stringify({ bookingId: booking.bookingId }) }]
+                });
+
+                console.log('Event: PaymentSucceeded emitted ✅');
+            } catch (err) {
+                console.log('Payment failed ❌:', err.message);
+
+                await producer.send({
+                    topic: 'payment-failed',
+                    messages: [{ value: JSON.stringify({ bookingId: booking.bookingId, reason: err.message }) }]
+                });
+
+                console.log('Event: PaymentFailed emitted ❌');
+            }
+        }
+    });
+}
+
+run();
+
+
+// confimartion
+
+const kafka = require('./kafka');
+const consumer = kafka.consumer({ groupId: 'confirmation-service' });
+
+async function run() {
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'payment-succeeded', fromBeginning: true });
+
+    await consumer.run({
+        eachMessage: async ({ message }) => {
+            const payment = JSON.parse(message.value.toString());
+            console.log('Received PaymentSucceeded:', payment);
+
+            console.log(`Confirming booking ${payment.bookingId} ✅`);
+            // Update DB to confirm booking
+        }
+    });
+}
+
+run();
+
+
+// cancel on fail
+
+const kafka = require('./kafka');
+const consumer = kafka.consumer({ groupId: 'compensation-service' });
+
+async function run() {
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'payment-failed', fromBeginning: true });
+
+    await consumer.run({
+        eachMessage: async ({ message }) => {
+            const failure = JSON.parse(message.value.toString());
+            console.log('Received PaymentFailed:', failure);
+
+            console.log(`Canceling booking ${failure.bookingId} ❌`);
+            // Update DB to cancel booking
+        }
+    });
+}
+
+run();
+
