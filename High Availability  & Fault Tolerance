@@ -1,0 +1,7 @@
+
+No Single Point of Failure | Multi-server setup (Load balancers, Kubernetes, Auto Scaling Groups)
+Fast Failover | Health checks, service discovery
+Backup and Recovery | Database replication (master-slave / primary-replica)
+Handle Server Crashes | Retry policies, queues, distributed logs
+Handle Network Issues | Circuit breakers, retries with exponential backoff
+Scalability | Stateless APIs + Horizontal scaling
