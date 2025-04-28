@@ -1,0 +1,48 @@
+// Asynchronous Processing with Job Queue
+
+const express = require('express');
+const Bull = require('bull');
+const app = express();
+
+// Create a job queue
+const processQueue = new Bull('processing-queue', {
+  redis: { port: 6379, host: 'redis' }
+});
+
+// Long-running task
+async function processData(data) {
+  // Simulate slow operation
+  await new Promise(resolve => setTimeout(resolve, 10000));
+  return { result: `Processed ${data.input}` };
+}
+
+// API endpoint to submit job
+app.post('/api/process', async (req, res) => {
+  const job = await processQueue.add(req.body);
+  
+  res.json({ 
+    jobId: job.id,
+    statusUrl: `/api/status/${job.id}`
+  });
+});
+
+// API endpoint to check status
+app.get('/api/status/:jobId', async (req, res) => {
+  const job = await processQueue.getJob(req.params.jobId);
+  
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  
+  res.json({
+    status: await job.getState(),
+    result: job.returnvalue,
+    progress: job.progress()
+  });
+});
+
+// Process jobs from the queue
+processQueue.process(async (job) => {
+  return await processData(job.data);
+});
+
+app.listen(3000, () => console.log('Server running on port 3000'));
+
