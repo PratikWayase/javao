@@ -1,0 +1,44 @@
+//Synchronous APIs wait for a response immediately after making a request, blocking the application until the response is received. Asynchronous APIs, on the other hand, 
+// ASynchronous : don't block the application, allowing it to continue other tasks while waiting for a response, which may come later. 
+
+// best choice : grpc + kafka
+
+// Asynchronous Communication
+
+// Producer (Service A)
+
+const { Kafka } = require('kafkajs');
+
+const kafka = new Kafka({
+  clientId: 'service-a',
+  brokers: ['kafka:9092']
+});
+
+const producer = kafka.producer();
+
+async function publishUserCreated(user) {
+  await producer.connect();
+  await producer.send({
+    topic: 'user-created',
+    messages: [
+      { value: JSON.stringify(user) }
+    ]
+  });
+}
+
+//// Consumer (Service B)
+
+const consumer = kafka.consumer({ groupId: 'orders-service-group' });
+
+async function startUserCreatedConsumer() {
+  await consumer.connect();
+  await consumer.subscribe({ topic: 'user-created' });
+  
+  await consumer.run({
+    eachMessage: async ({ message }) => {
+      const user = JSON.parse(message.value.toString());
+      // Process the user creation event
+      console.log('Processing new user:', user.id);
+    }
+  });
+}
