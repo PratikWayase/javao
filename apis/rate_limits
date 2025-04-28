@@ -1,0 +1,150 @@
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const bodyParser = require('body-parser');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Secret key for JWT - in production, use environment variables
+const JWT_SECRET = 'your-secret-key-here';
+
+// Mock database of users
+const users = [
+  {
+    id: 1,
+    username: 'freeuser',
+    password: '$2b$10$examplehashedpassword', // "password" hashed
+    type: 'free'
+  },
+  {
+    id: 2,
+    username: 'diamonduser',
+    password: '$2b$10$examplehashedpassword', // "password" hashed
+    type: 'diamond'
+  },
+  {
+    id: 3,
+    username: 'golduser',
+    password: '$2b$10$examplehashedpassword', // "password" hashed
+    type: 'gold'
+  }
+];
+
+// User types
+const USER_TYPES = {
+  FREE: 'free',
+  DIAMOND: 'diamond',
+  GOLD: 'gold'
+};
+
+// Rate limit configuration per user type
+const RATE_LIMITS = {
+  [USER_TYPES.FREE]: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 4,
+    message: 'You have exceeded your 4 free job searches for today. Upgrade to premium for more searches.'
+  },
+  [USER_TYPES.DIAMOND]: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 10,
+    message: 'You have exceeded your 10 daily job searches as a Diamond member.'
+  },
+  [USER_TYPES.GOLD]: {
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 20,
+    message: 'You have exceeded your 20 daily job searches as a Gold member.'
+  }
+};
+
+// Authentication middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.sendStatus(401);
+  
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Middleware to determine user type from JWT
+function getUserType(req) {
+  if (!req.user) return USER_TYPES.FREE;
+  return req.user.type || USER_TYPES.FREE;
+}
+
+// Dynamic rate limiter based on user type
+const dynamicRateLimiter = (req, res, next) => {
+  const userType = getUserType(req);
+  
+  const limiter = rateLimit({
+    ...RATE_LIMITS[userType],
+    keyGenerator: (req) => {
+      // Use user ID + endpoint as the key
+      return `${req.user?.id || req.ip}:${req.originalUrl}:${userType}`;
+    },
+    handler: (req, res) => {
+      res.status(429).json({
+        error: RATE_LIMITS[userType].message,
+        upgradeUrl: userType === USER_TYPES.FREE ? '/upgrade' : undefined
+      });
+    }
+  });
+  
+  limiter(req, res, next);
+};
+
+// Login endpoint
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username);
+  
+  if (!user) return res.status(401).send('Invalid credentials');
+  
+  try {
+    if (await bcrypt.compare(password, user.password)) {
+      const accessToken = jwt.sign(
+        { id: user.id, username: user.username, type: user.type },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      res.json({ accessToken });
+    } else {
+      res.status(401).send('Invalid credentials');
+    }
+  } catch {
+    res.status(500).send();
+  }
+});
+
+// Protected job search endpoint
+app.get('/api/job-search', authenticateToken, dynamicRateLimiter, (req, res) => {
+  res.json({
+    message: 'Job search successful',
+    userType: req.user.type,
+    remainingSearches: req.rateLimit.remaining - 1
+  });
+});
+
+// Upgrade endpoint (mock)
+app.get('/upgrade', authenticateToken, (req, res) => {
+  res.json({
+    message: 'Upgrade to premium for more job searches!',
+    currentPlan: req.user.type,
+    options: [
+      { type: USER_TYPES.DIAMOND, searches: 10, price: '$9.99/month' },
+      { type: USER_TYPES.GOLD, searches: 20, price: '$14.99/month' }
+    ]
+  });
+});
+
+// Start server
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
