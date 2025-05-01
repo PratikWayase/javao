@@ -1,0 +1,176 @@
+// controllers/userController.js
+const User = require('../models/User'); // assuming User model exists
+
+// Update user profile
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    const updatedUser = await user.save();
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// Update user password
+exports.updatePassword = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Validate current password and update
+    const isMatch = await user.matchPassword(req.body.currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, error: 'Invalid current password' });
+    }
+
+    user.password = req.body.newPassword;
+    await user.save();
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// Update user notification settings
+exports.updateNotificationSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    user.notifications = req.body.notifications;
+    const updatedUser = await user.save();
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// controllers/adminController.js
+const User = require('../models/User');  // User model for role/permissions
+const Product = require('../models/Product');  // Product model
+const Order = require('../models/Order'); // Order model
+
+// Update user role/permissions (admin only)
+exports.updateUserRole = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    user.role = req.body.role || user.role;
+    const updatedUser = await user.save();
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// Update product details (admin or seller)
+exports.updateProductDetails = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.id !== product.sellerId) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    product.name = req.body.name || product.name;
+    product.price = req.body.price || product.price;
+    const updatedProduct = await product.save();
+    res.status(200).json({ success: true, data: updatedProduct });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// Update order status (admin/system)
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    order.status = req.body.status || order.status;
+    const updatedOrder = await order.save();
+    res.status(200).json({ success: true, data: updatedOrder });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+
+// controllers/paymentController.js
+const Payment = require('../models/Payment');  // Payment model
+
+// Update payment info (authenticated users only)
+exports.updatePaymentInfo = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment info not found' });
+    }
+
+    if (req.user.id !== payment.userId) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    payment.cardNumber = req.body.cardNumber || payment.cardNumber;
+    payment.expiry = req.body.expiry || payment.expiry;
+    payment.billingAddress = req.body.billingAddress || payment.billingAddress;
+
+    const updatedPayment = await payment.save();
+    res.status(200).json({ success: true, data: updatedPayment });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+// controllers/learningController.js
+const LearningProgress = require('../models/LearningProgress'); // Learning progress model
+
+// Update learning progress (students/admins)
+exports.updateLearningProgress = async (req, res) => {
+  try {
+    const progress = await LearningProgress.findOne({ studentId: req.params.studentId });
+    if (!progress) {
+      return res.status(404).json({ success: false, error: 'Learning progress not found' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.id !== req.params.studentId) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    progress.completedLessons = req.body.completedLessons || progress.completedLessons;
+    progress.score = req.body.score || progress.score;
+
+    const updatedProgress = await progress.save();
+    res.status(200).json({ success: true, data: updatedProgress });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
