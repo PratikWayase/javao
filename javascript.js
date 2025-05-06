@@ -51,7 +51,9 @@
 
 
 
-// 1. let and const is block scoped where as var is function scoped
+// 1. Scope for var,let and const
+
+// let and const is block scoped where as var is function scoped
 let cname = 'India'
 if (true) {
     let cname = 'Newzeland'
@@ -78,7 +80,9 @@ varLetDiff()
 // Here in case of var 3 is printed three times and if we use let 0,1,2 will be printed
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//  2. JS default behaviour taking declaration to the top of the code before excecution
+//  2. Hoisting (variable) /temporal dead zone
+
+//JS default behaviour taking declaration to the top of the code before excecution
 //  JS only hoist declarations,not initilization. Variable will be undefined until the line where its initialized is reaching in case of var but in case of let and const it will show error.
 console.log(day) //undefined
 // console.log(date); //RefrenceError
@@ -96,7 +100,9 @@ console.log(day) // sunday
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//3. Execution Context provides a environment to run a JS code. By deault there is global execution context later it executed through single thread.
+//3.  Execution Context,call stack and Execution stack
+
+//Execution Context provides a environment to run a JS code. By deault there is global execution context later it executed through single thread.
 // Call stack keep the record of all context including global and functional
 function a1(a, b) {
     return a * b
@@ -115,7 +121,9 @@ console.log(invoke); //20
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//  4. JS engine finds excat scope or assceability of a varibale which is called Chain scope
+//  4. Scope chain and lexical scoping.
+
+//JS engine finds excat scope or assceability of a varibale which is called Chain scope
 let global = 20
 function main() {
     let local = 30
@@ -145,7 +153,9 @@ function grandfather() {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 5. It helps in writing cleaner code and throw error when we use undeclared variable
+// 5.  "Use strict" mode in JS
+
+//It helps in writing cleaner code and throw error when we use undeclared variable
 y = 3.5 //this will not throw a error it will work in its local scope only
 strict()
 function strict() {
@@ -156,6 +166,7 @@ function strict() {
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 // 6."this" keyword used in object method refers to object
+
 // used alone refers to windows object
 // used with strict mode refers to windows Object
 
@@ -175,12 +186,15 @@ function thisfunc() {
 thisfunc()
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 7. Premetive data types are 7 inbuilt data types suvh as string,boolean,number,symbol etc --> size depend on data,cannot perform functions
+// 7. Premetive data types
+// are 7 inbuilt data types suvh as string,boolean,number,symbol etc --> size depend on data,cannot perform functions
 //Non-premitive a data types which are derived from premitive data types which are array and Object --> all have same size,can perform functions
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 8. Pass by value is directly passing the value as argument will not change the value if there is any change in function
+// 8.Pass by value and pass by refrence
+
+//Pass by value is directly passing the value as argument will not change the value if there is any change in function
 function value(a, b) {
     let temp = a
     a = b
@@ -210,7 +224,9 @@ console.log(obj11.a + 'after invoking' + obj11.b);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 9. Keep your data and functional totally seprate
+// 9.  Functional programming
+
+// Keep your data and functional totally seprate
 // instead of changing the same varible make more
 let score = 88
 function addBonous() {
@@ -234,7 +250,9 @@ const first = function (x, y) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 10. Default behaviour of JS moving function declaration on the top of the code before excution
+// 10.Function hoisting
+
+//Default behaviour of JS moving function declaration on the top of the code before excution
 hello1()
 function hello1() {
     return 'hello'
@@ -242,7 +260,9 @@ function hello1() {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 11. When a function is passed as argument in a function it is a called as callback functiom
+// 11. Callback functions and asynchronous function
+
+//When a function is passed as argument in a function it is a called as callback functiom
 function callbck(index, callme) {
     console.log(index)
     callme()
@@ -268,7 +288,9 @@ console.log(2);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 12. In HOF we can return function or use function a argument also
+// 12. Higher order function
+
+//In HOF we can return function or use function a argument also
 //So wirting one repeated code again we can use functions as arguments
 function equate(arr, callback3) {
     let newArray = []
@@ -306,7 +328,9 @@ Array.prototype.mymap = function (fn) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 13. IIFE are function which a excecuted as they are mount to stack,if we want a function to only used once so we can immediately invoke as application loads
+// 13. IIFE
+
+//are function which a excecuted as they are mount to stack,if we want a function to only used once so we can immediately invoke as application loads
 
 function Greet() {
     console.log("Welcome to GFG!");
@@ -321,7 +345,9 @@ Greet();
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 
-//14. A closure gives you access to an outer function's scope from an inner function.
+//14. A closure
+
+//gives you access to an outer function's scope from an inner function.
 function add(a) {
     console.log('no. of eyes' + ' ' + a);
     let c = 5
@@ -335,7 +361,8 @@ console.log(store(3)); //2+5+3=10 values retained
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 15. Attach a function with object we use callback,bind and apply
+// 15.  use callback,bind and apply
+
 // To achieve the reusability let us take a eg for Call
 let student = {
     name: 'Ishu',
@@ -377,7 +404,9 @@ console.log(teacher);
 //-------------------------------------------------------------------------------------------------------------------------------------------//
 
 
-//16. forEach() method is used to loop through the elements of an array and didnt give a new array
+//16. forEach() method
+
+//is used to loop through the elements of an array and didnt give a new array
 const numbers = [1, 2, 3, 4, 5];
 numbers.forEach((num) => {
     console.log(num * 2);
@@ -407,6 +436,7 @@ for (let key in student) {
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //17. Array destructuring
+
 let arr51 = [name, age, job, email] = ['ishu', 25, 'frontend developer', 'ishwer@gmail.com']
 console.log(arr51);
 
@@ -433,6 +463,7 @@ console.log(city, state);
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //18.Array functions
+
 // Push=> Add element to the last index of a array
 // Pop=> Removing element from the last index
 // Shift=> Remove element from the first index
@@ -458,6 +489,7 @@ console.log(fruits);
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //19. Rest and Spread operators
+
 // Rest operator=>List of item converted to array
 function sun(a, b, ...restEx) {
     console.log(restEx); //[3,4,5]
@@ -474,6 +506,7 @@ Math.max(...maxVal) //9
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //20. Class,object,contructor and inheritance
+
 class Car {
     constructor(wheel, color) {
         this.wheel = wheel,
@@ -497,6 +530,7 @@ console.log(TATA);
 //-------------------------------------------------------------------------------------------------------------------------------------------//
 
 //21. Syncronimus and Asyncronimus programming
+
 console.log(1);
 setTimeout(() => {
     console.log("I love JavaScript !!!");
@@ -529,7 +563,9 @@ getdata11().then((data) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//23. Callback hell is when you nest things inside of each other because they all depend on the previous callback to being called before it can then go ahead and run, when you need to run things in sequence, one after the other.
+//23. Callback hell
+
+// is when you nest things inside of each other because they all depend on the previous callback to being called before it can then go ahead and run, when you need to run things in sequence, one after the other.
 
 function divide(x, y) {
     return x / y
@@ -545,7 +581,9 @@ console.log(compute(multiply, 10, 5)) //20
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//24. Promises in JavaScript allow you to handle asynchronous operations, such as API requests. They represent the eventual completion or failure of an operation and provide a structured way to handle the result. By associating handlers with success and failure, Promises simplify asynchronous code.
+//24. Promises 
+
+//in JavaScript allow you to handle asynchronous operations, such as API requests. They represent the eventual completion or failure of an operation and provide a structured way to handle the result. By associating handlers with success and failure, Promises simplify asynchronous code.
 // Function to fetch data from a real API using Promises
 function fetchData() {
     return new Promise((resolve, reject) => {
@@ -602,7 +640,9 @@ fetchData.then((data)=>{
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//25. The async function declaration declares an async function where the await keyword is permitted within the function body. 
+//25. The async function
+
+//declaration declares an async function where the await keyword is permitted within the function body. 
 //The async and await keywords enable asynchronous, promise-based behavior to be written in a cleaner style, avoiding the need to explicitly configure promise chains.
 function callAfterAsync() {
     return new Promise(resolved => {
@@ -622,7 +662,9 @@ asyncCall()
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//26. Prototypes are the mechanism by which JavaScript objects inherit features from one another.
+//26. Prototypes
+
+//are the mechanism by which JavaScript objects inherit features from one another.
 class Student11 {
     constructor(name, _class, age, section) {
         this.name = name
@@ -646,7 +688,9 @@ console.log(student2.section);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//27. Pollyfill is wiriting a code for a browser which doesnt supports a specific code which follows by our current browser
+//27. Pollyfill
+
+//is wiriting a code for a browser which doesnt supports a specific code which follows by our current browser
 let arr27 = [1, 2, 3, 4, 5]
 Array.prototype.forEach = null
 
@@ -664,6 +708,7 @@ arr27.forEach((val) => {
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //28. Curring and Closure
+
 // Currying in JavaScript transforms a function with multiple arguments into a nested series of functions, each taking a single argument
 function multiply(a) {
     return function (b) {
@@ -719,7 +764,9 @@ document.cookie = "username=Ishwer Sharma"
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//31. Debounce function limits the execution of a function call and waits for a certain amount of time before running it again.
+//31. Debounce function
+
+//limits the execution of a function call and waits for a certain amount of time before running it again.
 // Debouncing is a technique in JavaScript used to optimize performance by delaying the execution of a function until after a certain period of inactivity. It ensures that the function is called only once during a series of rapid consecutive calls.
 function debounce(func, delay) {
     let timeoutId;
@@ -784,6 +831,7 @@ const scrollCount = () => {
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 // /32. Shallow and Deep copy
+
 //This is  called Shallow copy
 // Example of a shallow copy
 const originalArray = [1, 2, [3, 4]];
@@ -830,7 +878,8 @@ function deepCopy(obj) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//33. Event Propgation(Bubbling and Capturing)
+//33. Event Propgation(Bubbling and Capturing) Event Bubbling
+
 // Event Bubbling=> The event is first captured and handled by the innermost element and then propagated to outer elements.
 // document.getElementById('parent').addEventListener('click', function() {
 //     console.log('Parent element clicked');
@@ -862,7 +911,9 @@ function deepCopy(obj) {
 
 
 
-//34. Event delegation=> It is pattern that efficiently handles events. Events can be added to a parent element instead of adding to every single element. It refers to the process of using event propagation (bubbling) to handle events at a higher level in the DOM than the element on which the event originated.
+//34. Event delegation=> 
+
+//It is pattern that efficiently handles events. Events can be added to a parent element instead of adding to every single element. It refers to the process of using event propagation (bubbling) to handle events at a higher level in the DOM than the element on which the event originated.
 // Parent element
 // const parentElement = document.getElementById('parent');
 
@@ -882,7 +933,9 @@ function deepCopy(obj) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-// 35.Null means value assigned to the var is zero or blank
+// 35. Null and Undefined
+
+//Null means value assigned to the var is zero or blank
 let x1 = null
 
 // When a var is undefined that means var is defined but value is not given to it 
@@ -890,7 +943,9 @@ let x2;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//36. setInterval=>The setInterval() Javascript method is used to call a function repeatedly at a specified interval of time. setInterval() is cancelled by clearInterval() method.
+//36. setInterval=>The setInterval() Javascript method
+
+//is used to call a function repeatedly at a specified interval of time. setInterval() is cancelled by clearInterval() method.
 
 // setInterval(myTimer, 1000);
 function myTimer() {
@@ -908,7 +963,9 @@ setTimeout(sayHi, 1000, "Hello", "John");
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//37. MicroTask=> In JavaScript, microtasks are often associated with asynchronous tasks and the event loop. One micro task can schedule another micro task
+//37. MicroTask=> 
+
+//In JavaScript, microtasks are often associated with asynchronous tasks and the event loop. One micro task can schedule another micro task
 // Event loop continuously runs all the micro task. You need to be cautious with how you go about recursively adding micro tasks. Some examples of micro tasks are:
 // Promises: Microtasks are used extensively with promises. When a promise is resolved or rejected, the corresponding callback function is executed as a microtask.
 // fetch('https://api.example.com/data')
@@ -953,12 +1010,15 @@ obj6 = null;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
-//40. The critical rendering path refers to the sequence of steps that a web browser takes to convert HTML, CSS, and JavaScript into pixels on the user's screen. It involves fetching, parsing, and rendering resources to display the content of a web page. 
+//40. The critical rendering 
+
+//path refers to the sequence of steps that a web browser takes to convert HTML, CSS, and JavaScript into pixels on the user's screen. It involves fetching, parsing, and rendering resources to display the content of a web page. 
 // Throughout this process, the browser works behind the scenes to fetch resources, parse HTML and CSS, calculate styles, and render the content. The critical rendering path ensures that the web page is displayed to the user as quickly and efficiently as possible, providing a smooth and responsive browsing experience.
 
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //41. Memorization
+
 console.time('memo')
 function memoizedFactorial() {
     let memo = [];
@@ -1075,6 +1135,7 @@ while (fn < num) {
 //--------------------------------------------------------------------------------------------------------------------------------------------//
 
 //45. Array with 0, 1, and 2 (sort it in the most optimized manner):
+
 // To sort an array with 0s, 1s, and 2s, we can use a modified version of the Dutch National Flag algorithm. The algorithm maintains three pointers: low, mid, and high. The low pointer keeps track of the boundary of 0s, the mid pointer scans the array, and the high pointer keeps track of the boundary of 2s.
 const sortArray = (arr) => {
     let low = 0;
@@ -1151,6 +1212,7 @@ console.log(binarySearch(array11, target11)); // Output: 4
 
 
 // 48. Server side rendering
+
 // Server-side rendering (SSR) is a technique used in web development. It involves generating web pages on the server and sending them to the client as fully rendered HTML. This allows the content to be displayed immediately and improves the initial page load time.
 
 // SSR is beneficial because it helps with search engine optimization (SEO) by allowing search engines to crawl and index the content effectively. It also enhances performance, especially on devices with slower processing capabilities.
